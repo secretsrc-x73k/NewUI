@@ -1,4 +1,4 @@
--- #Fix Color Reaper 13
+-- #Fix Color Reaper 14
 local a, b = {
     {
         1,
@@ -219,7 +219,7 @@ local aa = {
                 x.Transparency = D
                 x.Window.Background.BackgroundTransparency = D and 0.18 or 0
                 if x.Window.TabBar then
-                    x.Window.TabBar.BackgroundTransparency = D and 0.12 or 0
+                    x.Window.TabBar.BackgroundTransparency = D and 0.18 or 0
                 end
             end
         end
@@ -1164,13 +1164,16 @@ local aa = {
                 {
                     Size = UDim2.fromOffset(108, 38),
                     BackgroundTransparency = 1,
+                    BackgroundColor3 = Color3.fromRGB(255, 255, 255),
                     Parent = s,
                     AutoButtonColor = false,
                     Text = "",
-                    LayoutOrder = w
+                    LayoutOrder = w,
+                    ThemeTag = {BackgroundColor3 = "Tab"}
                 },
                 {
-                    k("UIStroke", {Thickness = 0, Transparency = 1, ThemeTag = {Color = "TitleBarLine"}}),
+                    k("UICorner", {CornerRadius = UDim.new(0, 7)}),
+                    k("UIStroke", {Thickness = 1, Transparency = 1, ThemeTag = {Color = "TitleBarLine"}}),
                     k(
                         "Frame",
                         {
@@ -1332,26 +1335,47 @@ local aa = {
 
         function o.UpdateLayout(p)
             local r = o.Window
-            if not r or not r.TabHolder then
+            if not r or not r.TabHolder or not r.TabBar then
                 return
             end
 
-            local layout = r.TabHolder:FindFirstChildOfClass("UIGridLayout")
-            if not layout then
-                return
-            end
-
+            -- Manual tab positioning keeps every row centered independently.
+            -- Maximum 7 tabs per row. This avoids the empty cells / left-shifted
+            -- second row that a fixed UIGridLayout would create.
             local count = math.max(o.TabCount, 1)
-            local columns = math.min(count, 7)
-            local rows = math.ceil(count / 7)
-            local width = (columns * 108) + ((columns - 1) * 6) + 16
-            local height = (rows * 38) + ((rows - 1) * 6) + 10
+            local perRow = 7
+            local tabWidth = 108
+            local tabHeight = 38
+            local gapX = 6
+            local gapY = 6
+            local paddingX = 8
+            local paddingY = 7
+            local rows = math.ceil(count / perRow)
+            local maxColumns = math.min(count, perRow)
+            local barWidth = (maxColumns * tabWidth) + ((maxColumns - 1) * gapX) + (paddingX * 2)
+            local barHeight = (rows * tabHeight) + ((rows - 1) * gapY) + (paddingY * 2)
 
-            r.TabBar.Size = UDim2.fromOffset(width, height)
-            r.TabHolder.Size = UDim2.new(1, -10, 1, -10)
-            r.TabHolder.Position = UDim2.fromOffset(5, 5)
+            r.TabBar.Size = UDim2.fromOffset(barWidth, barHeight)
+            r.TabHolder.Size = UDim2.fromScale(1, 1)
+            r.TabHolder.Position = UDim2.fromOffset(0, 0)
+
+            for index, tab in ipairs(o.Tabs) do
+                local row = math.floor((index - 1) / perRow)
+                local firstIndex = row * perRow + 1
+                local lastIndex = math.min(firstIndex + perRow - 1, count)
+                local columns = lastIndex - firstIndex + 1
+                local rowWidth = (columns * tabWidth) + ((columns - 1) * gapX)
+                local column = index - firstIndex
+
+                tab.Frame.Size = UDim2.fromOffset(tabWidth, tabHeight)
+                tab.Frame.Position = UDim2.fromOffset(
+                    paddingX + ((maxColumns * tabWidth + (maxColumns - 1) * gapX) - rowWidth) / 2 + column * (tabWidth + gapX),
+                    paddingY + row * (tabHeight + gapY)
+                )
+            end
+
             r.TabBar.Position = UDim2.fromOffset(
-                r.Root.Position.X.Offset + (r.Root.AbsoluteSize.X - width) / 2,
+                r.Root.Position.X.Offset + (r.Root.AbsoluteSize.X - barWidth) / 2,
                 r.Root.Position.Y.Offset + r.Root.AbsoluteSize.Y + 10
             )
         end
@@ -1829,36 +1853,28 @@ local aa = {
                     {
                         Size = UDim2.fromOffset(124, 48),
                         Position = UDim2.fromOffset(v.Position.X.Offset, v.Position.Y.Offset + v.Size.Y.Offset + 10),
-                        BackgroundTransparency = 1,
+                        BackgroundTransparency = 0.18,
                         ClipsDescendants = false,
                         Parent = t.Parent,
-                        Visible = true,
-                        ZIndex = 20
+                        ThemeTag = {BackgroundColor3 = "AcrylicMain"}
+                    },
+                    {
+                        s("UICorner", {CornerRadius = UDim.new(0, 10)}),
+                        s("UIStroke", {Thickness = 1, Transparency = 0.35, ThemeTag = {Color = "AcrylicBorder"}})
                     }
                 )
 
+            -- TabHolder is intentionally a plain transparent container.
+            -- Tab buttons are positioned manually by UpdateLayout so each row
+            -- is centered and there are no invisible grid cells around the tabs.
             local TabHolder =
                 s(
                     "Frame",
                     {
-                        Size = UDim2.new(1, -10, 1, -10),
-                        Position = UDim2.fromOffset(5, 5),
+                        Size = UDim2.fromScale(1, 1),
+                        Position = UDim2.fromOffset(0, 0),
                         BackgroundTransparency = 1,
                         Parent = TabBar
-                    },
-                    {
-                        s(
-                            "UIGridLayout",
-                            {
-                                CellSize = UDim2.fromOffset(108, 38),
-                                CellPadding = UDim2.fromOffset(6, 6),
-                                FillDirection = Enum.FillDirection.Horizontal,
-                                FillDirectionMaxCells = 7,
-                                HorizontalAlignment = Enum.HorizontalAlignment.Center,
-                                VerticalAlignment = Enum.VerticalAlignment.Center,
-                                SortOrder = Enum.SortOrder.LayoutOrder
-                            }
-                        )
                     }
                 )
 
@@ -2054,8 +2070,6 @@ local aa = {
                     end
                 end
             )
-            -- TabHolder uses UIGridLayout now. Its AbsoluteContentSize listener is
-            -- already connected above, so do not reference the old UIListLayout here.
             m.AddSignal(
                 h.InputBegan,
                 function(M)
@@ -2073,13 +2087,10 @@ local aa = {
             )
             function v.Minimize(M)
                 v.Minimized = not v.Minimized
-
-                -- The tab bar is detached from Root, so hide/show it explicitly.
                 v.Root.Visible = not v.Minimized
                 if v.TabBar then
                     v.TabBar.Visible = not v.Minimized
                 end
-
                 if not C then
                     C = true
                     local N = u.MinimizeKeybind and u.MinimizeKeybind.Value or u.MinimizeKey.Name
