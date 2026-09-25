@@ -1,4 +1,4 @@
--- #Fix Color Reaper 12
+-- #Fix Color Reaper 13
 local a, b = {
     {
         1,
@@ -1831,7 +1831,9 @@ local aa = {
                         Position = UDim2.fromOffset(v.Position.X.Offset, v.Position.Y.Offset + v.Size.Y.Offset + 10),
                         BackgroundTransparency = 1,
                         ClipsDescendants = false,
-                        Parent = t.Parent
+                        Parent = t.Parent,
+                        Visible = true,
+                        ZIndex = 20
                     }
                 )
 
@@ -2052,12 +2054,8 @@ local aa = {
                     end
                 end
             )
-            m.AddSignal(
-                TabHolder.UIListLayout:GetPropertyChangedSignal "AbsoluteContentSize",
-                function()
-                    TabHolder.CanvasSize = UDim2.new(0, TabHolder.UIListLayout.AbsoluteContentSize.X + 8, 0, 0)
-                end
-            )
+            -- TabHolder uses UIGridLayout now. Its AbsoluteContentSize listener is
+            -- already connected above, so do not reference the old UIListLayout here.
             m.AddSignal(
                 h.InputBegan,
                 function(M)
@@ -2075,7 +2073,13 @@ local aa = {
             )
             function v.Minimize(M)
                 v.Minimized = not v.Minimized
+
+                -- The tab bar is detached from Root, so hide/show it explicitly.
                 v.Root.Visible = not v.Minimized
+                if v.TabBar then
+                    v.TabBar.Visible = not v.Minimized
+                end
+
                 if not C then
                     C = true
                     local N = u.MinimizeKeybind and u.MinimizeKeybind.Value or u.MinimizeKey.Name
