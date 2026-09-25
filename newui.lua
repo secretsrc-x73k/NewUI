@@ -1146,7 +1146,7 @@ local aa = {
             return o
         end
         function o.GetCurrentTabPos(p)
-            local q, r = o.Window.TabHolder.AbsolutePosition.Y, o.Tabs[o.SelectedTab].Frame.AbsolutePosition.Y
+            local q, r = o.Window.TabHolder.AbsolutePosition.X, o.Tabs[o.SelectedTab].Frame.AbsolutePosition.X
             return r - q
         end
         function o.New(p, q, r, s)
@@ -1165,10 +1165,12 @@ local aa = {
                 k(
                 "TextButton",
                 {
-                    Size = UDim2.new(1, 0, 0, 38),
+                    Size = UDim2.fromOffset(96, 38),
+                    AutomaticSize = Enum.AutomaticSize.X,
                     BackgroundTransparency = 0.94,
                     Parent = s,
                     AutoButtonColor = false,
+                    LayoutOrder = w,
                     ThemeTag = {BackgroundColor3 = "Tab"}
                 },
                 {
@@ -1188,7 +1190,8 @@ local aa = {
                             TextSize = 12,
                             TextXAlignment = "Left",
                             TextYAlignment = "Center",
-                            Size = UDim2.new(1, -18, 1, 0),
+                            AutomaticSize = Enum.AutomaticSize.X,
+                            Size = UDim2.new(0, 62, 1, 0),
                             BackgroundTransparency = 1,
                             ThemeTag = {TextColor3 = "Text"}
                         }
@@ -1303,7 +1306,9 @@ local aa = {
             o.Tabs[q].SetTransparency(0.76)
             o.Tabs[q].Selected = true
             r.TabDisplay.Text = o.Tabs[q].Name
+            local tabWidth = math.max(24, o.Tabs[q].Frame.AbsoluteSize.X - 8)
             r.SelectorPosMotor:setGoal(l(o:GetCurrentTabPos(), {frequency = 7}))
+            r.SelectorSizeMotor:setGoal(l(tabWidth, {frequency = 7}))
             task.spawn(
                 function()
                     r.ContainerPosMotor:setGoal(l(110, {frequency = 10}))
@@ -1689,7 +1694,7 @@ local aa = {
                     }
                 )
 
-            -- Main window shell. Existing acrylic/transparency is still the base layer.
+            -- Main window shell. Acrylic/transparency and theme tags remain intact.
             local WindowStroke =
                 s(
                     "UIStroke",
@@ -1701,12 +1706,13 @@ local aa = {
                 )
             local WindowCorner = s("UICorner", {CornerRadius = UDim.new(0, 16)})
 
-            local Sidebar =
+            -- Bottom navigation bar. Tabs are horizontal instead of a left sidebar.
+            local BottomBar =
                 s(
                     "Frame",
                     {
-                        Size = UDim2.new(0, t.TabWidth + 12, 1, -54),
-                        Position = UDim2.fromOffset(8, 50),
+                        Size = UDim2.new(1, -16, 0, 56),
+                        Position = UDim2.new(0, 8, 1, -64),
                         BackgroundTransparency = 0.18,
                         ClipsDescendants = true,
                         ThemeTag = {BackgroundColor3 = "AcrylicMain"}
@@ -1724,121 +1730,32 @@ local aa = {
                     }
                 )
 
-            local BrandCard =
-                s(
-                    "Frame",
-                    {
-                        Size = UDim2.new(1, -18, 0, 78),
-                        Position = UDim2.fromOffset(9, 9),
-                        BackgroundTransparency = 0.18,
-                        ThemeTag = {BackgroundColor3 = "Element"}
-                    },
-                    {
-                        s("UICorner", {CornerRadius = UDim.new(0, 11)}),
-                        s(
-                            "UIStroke",
-                            {
-                                Transparency = 0.72,
-                                Thickness = 1,
-                                ThemeTag = {Color = "ElementBorder"}
-                            }
-                        )
-                    }
-                )
-
-            local BrandAccent =
-                s(
-                    "Frame",
-                    {
-                        Size = UDim2.new(0, 3, 0, 42),
-                        Position = UDim2.fromOffset(12, 18),
-                        BackgroundTransparency = 0,
-                        ThemeTag = {BackgroundColor3 = "Accent"}
-                    },
-                    {s("UICorner", {CornerRadius = UDim.new(1, 0)})}
-                )
-
-            local BrandTitle =
-                s(
-                    "TextLabel",
-                    {
-                        Text = t.Title,
-                        FontFace = Font.new(
-                            "rbxasset://fonts/families/GothamSSm.json",
-                            Enum.FontWeight.SemiBold,
-                            Enum.FontStyle.Normal
-                        ),
-                        TextSize = 15,
-                        TextXAlignment = "Left",
-                        TextYAlignment = "Center",
-                        Position = UDim2.fromOffset(26, 16),
-                        Size = UDim2.new(1, -34, 0, 22),
-                        BackgroundTransparency = 1,
-                        ThemeTag = {TextColor3 = "Text"}
-                    }
-                )
-
-            local BrandSubTitle =
-                s(
-                    "TextLabel",
-                    {
-                        Text = t.SubTitle or "",
-                        FontFace = Font.new "rbxasset://fonts/families/GothamSSm.json",
-                        TextSize = 10,
-                        TextXAlignment = "Left",
-                        TextYAlignment = "Center",
-                        Position = UDim2.fromOffset(26, 39),
-                        Size = UDim2.new(1, -34, 0, 18),
-                        BackgroundTransparency = 1,
-                        ThemeTag = {TextColor3 = "SubText"}
-                    }
-                )
-
-            BrandAccent.Parent = BrandCard
-            BrandTitle.Parent = BrandCard
-            BrandSubTitle.Parent = BrandCard
-
-            local SidebarFooter =
-                s(
-                    "TextLabel",
-                    {
-                        Text = "REAPER HUB",
-                        FontFace = Font.new "rbxasset://fonts/families/GothamSSm.json",
-                        TextSize = 9,
-                        TextTransparency = 0.45,
-                        TextXAlignment = "Left",
-                        TextYAlignment = "Center",
-                        Position = UDim2.new(0, 12, 1, -24),
-                        Size = UDim2.new(1, -24, 0, 14),
-                        BackgroundTransparency = 1,
-                        ThemeTag = {TextColor3 = "SubText"}
-                    }
-                )
-
             local TabHolder =
                 s(
                     "ScrollingFrame",
                     {
-                        Size = UDim2.new(1, -18, 1, -128),
-                        Position = UDim2.fromOffset(9, 96),
+                        Size = UDim2.new(1, -24, 1, -10),
+                        Position = UDim2.fromOffset(12, 5),
                         BackgroundTransparency = 1,
                         ScrollBarImageTransparency = 1,
                         ScrollBarThickness = 0,
                         BorderSizePixel = 0,
                         CanvasSize = UDim2.fromScale(0, 0),
-                        ScrollingDirection = Enum.ScrollingDirection.Y
+                        ScrollingDirection = Enum.ScrollingDirection.X,
+                        HorizontalScrollBarInset = Enum.ScrollBarInset.None,
+                        VerticalScrollBarInset = Enum.ScrollBarInset.None
                     },
-                    {s("UIListLayout", {Padding = UDim.new(0, 5)})}
-                )
-
-            local SidebarDivider =
-                s(
-                    "Frame",
                     {
-                        Size = UDim2.new(0, 1, 1, -72),
-                        Position = UDim2.fromOffset(t.TabWidth + 26, 58),
-                        BackgroundTransparency = 0.45,
-                        ThemeTag = {BackgroundColor3 = "AcrylicBorder"}
+                        s(
+                            "UIListLayout",
+                            {
+                                Padding = UDim.new(0, 6),
+                                FillDirection = Enum.FillDirection.Horizontal,
+                                HorizontalAlignment = Enum.HorizontalAlignment.Left,
+                                VerticalAlignment = Enum.VerticalAlignment.Center,
+                                SortOrder = Enum.SortOrder.LayoutOrder
+                            }
+                        )
                     }
                 )
 
@@ -1857,20 +1774,10 @@ local aa = {
                         TextSize = 22,
                         TextXAlignment = "Left",
                         TextYAlignment = "Center",
-                        Size = UDim2.new(1, -20, 0, 28),
-                        Position = UDim2.fromOffset(t.TabWidth + 42, 61),
+                        Size = UDim2.new(1, -40, 0, 28),
+                        Position = UDim2.fromOffset(20, 61),
                         BackgroundTransparency = 1,
                         ThemeTag = {TextColor3 = "Text"}
-                    }
-                )
-
-            local ContentHolder =
-                s(
-                    "CanvasGroup",
-                    {
-                        Size = UDim2.new(1, -t.TabWidth - 54, 1, -112),
-                        Position = UDim2.fromOffset(t.TabWidth + 42, 101),
-                        BackgroundTransparency = 1
                     }
                 )
 
@@ -1878,18 +1785,34 @@ local aa = {
                 s(
                     "Frame",
                     {
-                        Size = UDim2.new(1, -t.TabWidth - 54, 0, 1),
-                        Position = UDim2.fromOffset(t.TabWidth + 42, 94),
+                        Size = UDim2.new(1, -40, 0, 1),
+                        Position = UDim2.fromOffset(20, 94),
                         BackgroundTransparency = 0.55,
                         ThemeTag = {BackgroundColor3 = "TitleBarLine"}
                     }
                 )
 
+            local ContentHolder =
+                s(
+                    "CanvasGroup",
+                    {
+                        Size = UDim2.new(1, -40, 1, -166),
+                        Position = UDim2.fromOffset(20, 101),
+                        BackgroundTransparency = 1
+                    }
+                )
+
+            -- Animated accent indicator for the selected bottom tab.
+            D.Parent = BottomBar
+            D.Size = UDim2.fromOffset(0, 3)
+            D.Position = UDim2.new(0, 12, 1, -4)
+            D.AnchorPoint = Vector2.new(0, 0)
+
             v.TabHolder = TabHolder
             v.ContainerHolder = ContentHolder
             v.TabDisplay = ContentTitle
-            v.Sidebar = Sidebar
-            v.BrandCard = BrandCard
+            v.Sidebar = BottomBar
+            v.BrandCard = nil
 
             v.Root =
                 s(
@@ -1905,14 +1828,10 @@ local aa = {
                         v.AcrylicPaint.Frame,
                         WindowCorner,
                         WindowStroke,
-                        Sidebar,
-                        BrandCard,
-                        SidebarFooter,
-                        TabHolder,
-                        SidebarDivider,
                         ContentTitle,
                         ContentLine,
                         ContentHolder,
+                        BottomBar,
                         E
                     }
                 )
@@ -1924,14 +1843,6 @@ local aa = {
                 Window = v
             }
 
-            -- The title/subtitle are now represented by the sidebar brand card.
-            if v.TitleBar.TitleLabel then
-                v.TitleBar.TitleLabel.Visible = false
-            end
-            if v.TitleBar.SubTitleLabel then
-                v.TitleBar.SubTitleLabel.Visible = false
-            end
-
             if e(k).UseAcrylic then
                 v.AcrylicPaint.AddParent(v.Root)
             end
@@ -1940,7 +1851,7 @@ local aa = {
                 l.GroupMotor.new {X = v.Size.X.Offset, Y = v.Size.Y.Offset},
                 l.GroupMotor.new {X = v.Position.X.Offset, Y = v.Position.Y.Offset}
 
-            v.SelectorPosMotor = l.SingleMotor.new(113)
+            v.SelectorPosMotor = l.SingleMotor.new(0)
             v.SelectorSizeMotor = l.SingleMotor.new(0)
             v.ContainerBackMotor = l.SingleMotor.new(0)
             v.ContainerPosMotor = l.SingleMotor.new(98)
@@ -1959,11 +1870,11 @@ local aa = {
             local I, J = 0, 0
             v.SelectorPosMotor:onStep(
                 function(K)
-                    D.Position = UDim2.new(0, 4, 0, K + 113)
+                    D.Position = UDim2.new(0, K + 12, 1, -4)
                     local L = tick()
                     local M = L - J
                     if I ~= nil and M > 0 then
-                        v.SelectorSizeMotor:setGoal(q((math.abs(K - I) / (M * 60)) + 18))
+                        v.SelectorSizeMotor:setGoal(q((math.abs(K - I) / (M * 60)) + 42))
                         I = K
                     end
                     J = L
@@ -1971,7 +1882,7 @@ local aa = {
             )
             v.SelectorSizeMotor:onStep(
                 function(K)
-                    D.Size = UDim2.new(0, 3, 0, K)
+                    D.Size = UDim2.fromOffset(math.max(24, K), 3)
                 end
             )
             v.ContainerBackMotor:onStep(
@@ -1981,16 +1892,11 @@ local aa = {
             )
             v.ContainerPosMotor:onStep(
                 function(K)
-                    v.ContainerHolder.Position = UDim2.fromOffset(t.TabWidth + 42, K)
+                    v.ContainerHolder.Position = UDim2.fromOffset(20, K)
                 end
             )
 
-            -- Keep the selector outside the UIListLayout so it never changes tab spacing.
-            D.Parent = Sidebar
-
-            -- Reparent the tab list into the styled sidebar.
-            TabHolder.Parent = Sidebar
-            SidebarFooter.Parent = Sidebar
+            TabHolder.Parent = BottomBar
 
             local K, L
             v.Maximize = function(M, N, O)
@@ -2093,7 +1999,7 @@ local aa = {
             m.AddSignal(
                 TabHolder.UIListLayout:GetPropertyChangedSignal "AbsoluteContentSize",
                 function()
-                    TabHolder.CanvasSize = UDim2.new(0, 0, 0, TabHolder.UIListLayout.AbsoluteContentSize.Y)
+                    TabHolder.CanvasSize = UDim2.new(0, TabHolder.UIListLayout.AbsoluteContentSize.X, 0, 0)
                 end
             )
             m.AddSignal(
@@ -2175,7 +2081,7 @@ local aa = {
             m.AddSignal(
                 TabHolder:GetPropertyChangedSignal "CanvasPosition",
                 function()
-                    I = N:GetCurrentTabPos() + 16
+                    I = N:GetCurrentTabPos()
                     J = 0
                     v.SelectorPosMotor:setGoal(r(N:GetCurrentTabPos()))
                 end
