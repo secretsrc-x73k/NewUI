@@ -1,4 +1,4 @@
--- #Fix Color Reaper 14
+-- #Fix Color Reaper 15
 local a, b = {
     {
         1,
@@ -1343,7 +1343,7 @@ local aa = {
             -- Maximum 7 tabs per row. This avoids the empty cells / left-shifted
             -- second row that a fixed UIGridLayout would create.
             local count = math.max(o.TabCount, 1)
-            local perRow = 7
+            local perRow = 5
             local tabWidth = 108
             local tabHeight = 38
             local gapX = 6
