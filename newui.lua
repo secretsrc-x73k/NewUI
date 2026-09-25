@@ -1,4 +1,4 @@
--- #Fix Color Reaper 10
+-- #Fix Color Reaper 11
 local a, b = {
     {
         1,
@@ -186,10 +186,6 @@ local aa = {
                 return
             end
             x.MinimizeKey = D.MinimizeKey
-            x.UseAcrylic = D.Acrylic
-            if D.Acrylic then
-                r.init()
-            end
             local E =
                 e(s.Window) {Parent = w, Size = D.Size, Title = D.Title, SubTitle = D.SubTitle, TabWidth = D.TabWidth}
             x.Window = E
@@ -205,29 +201,21 @@ local aa = {
         function x.Destroy(C)
             if x.Window then
                 x.Unloaded = true
-                if x.UseAcrylic then
-                    x.Window.AcrylicPaint.Model:Destroy()
-                end
                 p.Disconnect()
                 x.GUI:Destroy()
             end
         end
         function x.ToggleAcrylic(C, D)
-            if x.Window then
-                if x.UseAcrylic then
-                    x.Acrylic = D
-                    x.Window.AcrylicPaint.Model.Transparency = D and 0.98 or 1
-                    if D then
-                        r.Enable()
-                    else
-                        r.Disable()
-                    end
-                end
-            end
+            -- Acrylic has been removed from the UI. Kept as a no-op for API compatibility.
+            return
         end
         function x.ToggleTransparency(C, D)
-            if x.Window then
-                x.Window.AcrylicPaint.Frame.Background.BackgroundTransparency = D and 0.35 or 0
+            if x.Window and x.Window.Background then
+                x.Transparency = D
+                x.Window.Background.BackgroundTransparency = D and 0.18 or 0
+                if x.Window.TabBar then
+                    x.Window.TabBar.BackgroundTransparency = D and 0.12 or 0
+                end
             end
         end
         function x.Notify(C, D)
@@ -1165,12 +1153,10 @@ local aa = {
                 k(
                 "TextButton",
                 {
-                    Size = UDim2.fromOffset(96, 38),
-                    AutomaticSize = Enum.AutomaticSize.X,
+                    Size = UDim2.fromOffset(108, 38),
                     BackgroundTransparency = 0.94,
                     Parent = s,
                     AutoButtonColor = false,
-                    LayoutOrder = w,
                     ThemeTag = {BackgroundColor3 = "Tab"}
                 },
                 {
@@ -1190,8 +1176,7 @@ local aa = {
                             TextSize = 12,
                             TextXAlignment = "Left",
                             TextYAlignment = "Center",
-                            AutomaticSize = Enum.AutomaticSize.X,
-                            Size = UDim2.new(0, 62, 1, 0),
+                            Size = UDim2.new(1, -18, 1, 0),
                             BackgroundTransparency = 1,
                             ThemeTag = {TextColor3 = "Text"}
                         }
@@ -1210,7 +1195,7 @@ local aa = {
                 }
             )
 
-            local y = k("UIListLayout", {Padding = UDim.new(0, 5), SortOrder = Enum.SortOrder.LayoutOrder})
+            local y = k("UIListLayout", {Padding = UDim.new(0, 6), SortOrder = Enum.SortOrder.LayoutOrder, FillDirection = Enum.FillDirection.Horizontal, VerticalAlignment = Enum.VerticalAlignment.Center})
             x.ContainerFrame =
                 k(
                 "ScrollingFrame",
@@ -1306,9 +1291,7 @@ local aa = {
             o.Tabs[q].SetTransparency(0.76)
             o.Tabs[q].Selected = true
             r.TabDisplay.Text = o.Tabs[q].Name
-            local tabWidth = math.max(24, o.Tabs[q].Frame.AbsoluteSize.X - 8)
             r.SelectorPosMotor:setGoal(l(o:GetCurrentTabPos(), {frequency = 7}))
-            r.SelectorSizeMotor:setGoal(l(tabWidth, {frequency = 7}))
             task.spawn(
                 function()
                     r.ContainerPosMotor:setGoal(l(110, {frequency = 10}))
@@ -1668,8 +1651,6 @@ local aa = {
 
             local A, B = false
             local C = false
-            v.AcrylicPaint = n.AcrylicPaint()
-
             -- Accent selector used by the existing tab system.
             local D =
                 s(
@@ -1694,7 +1675,7 @@ local aa = {
                     }
                 )
 
-            -- Main window shell. Acrylic/transparency and theme tags remain intact.
+            -- Main window shell. Existing acrylic/transparency is still the base layer.
             local WindowStroke =
                 s(
                     "UIStroke",
@@ -1706,59 +1687,30 @@ local aa = {
                 )
             local WindowCorner = s("UICorner", {CornerRadius = UDim.new(0, 16)})
 
-            -- Bottom navigation bar. Tabs are horizontal instead of a left sidebar.
-            local BottomBar =
+            local WindowStroke =
+                s(
+                    "UIStroke",
+                    {
+                        Thickness = 1,
+                        Transparency = 0.35,
+                        ThemeTag = {Color = "AcrylicBorder"}
+                    }
+                )
+            local WindowCorner = s("UICorner", {CornerRadius = UDim.new(0, 16)})
+
+            -- Plain transparent window background. Acrylic has been removed.
+            local WindowBackground =
                 s(
                     "Frame",
                     {
-                        Size = UDim2.new(1, -16, 0, 56),
-                        Position = UDim2.new(0, 8, 1, -64),
+                        Size = UDim2.fromScale(1, 1),
                         BackgroundTransparency = 0.18,
-                        ClipsDescendants = true,
                         ThemeTag = {BackgroundColor3 = "AcrylicMain"}
                     },
-                    {
-                        s("UICorner", {CornerRadius = UDim.new(0, 13)}),
-                        s(
-                            "UIStroke",
-                            {
-                                Transparency = 0.72,
-                                Thickness = 1,
-                                ThemeTag = {Color = "AcrylicBorder"}
-                            }
-                        )
-                    }
+                    {s("UICorner", {CornerRadius = UDim.new(0, 16)})}
                 )
 
-            local TabHolder =
-                s(
-                    "ScrollingFrame",
-                    {
-                        Size = UDim2.new(1, -24, 1, -10),
-                        Position = UDim2.fromOffset(12, 5),
-                        BackgroundTransparency = 1,
-                        ScrollBarImageTransparency = 1,
-                        ScrollBarThickness = 0,
-                        BorderSizePixel = 0,
-                        CanvasSize = UDim2.fromScale(0, 0),
-                        ScrollingDirection = Enum.ScrollingDirection.X,
-                        HorizontalScrollBarInset = Enum.ScrollBarInset.None,
-                        VerticalScrollBarInset = Enum.ScrollBarInset.None
-                    },
-                    {
-                        s(
-                            "UIListLayout",
-                            {
-                                Padding = UDim.new(0, 6),
-                                FillDirection = Enum.FillDirection.Horizontal,
-                                HorizontalAlignment = Enum.HorizontalAlignment.Left,
-                                VerticalAlignment = Enum.VerticalAlignment.Center,
-                                SortOrder = Enum.SortOrder.LayoutOrder
-                            }
-                        )
-                    }
-                )
-
+            -- Main content area. Tabs are intentionally NOT inside this window.
             local ContentTitle =
                 s(
                     "TextLabel",
@@ -1771,11 +1723,11 @@ local aa = {
                             Enum.FontWeight.SemiBold,
                             Enum.FontStyle.Normal
                         ),
-                        TextSize = 22,
+                        TextSize = 20,
                         TextXAlignment = "Left",
                         TextYAlignment = "Center",
-                        Size = UDim2.new(1, -40, 0, 28),
-                        Position = UDim2.fromOffset(20, 61),
+                        Size = UDim2.new(1, -40, 0, 30),
+                        Position = UDim2.fromOffset(20, 50),
                         BackgroundTransparency = 1,
                         ThemeTag = {TextColor3 = "Text"}
                     }
@@ -1786,7 +1738,7 @@ local aa = {
                     "Frame",
                     {
                         Size = UDim2.new(1, -40, 0, 1),
-                        Position = UDim2.fromOffset(20, 94),
+                        Position = UDim2.fromOffset(20, 88),
                         BackgroundTransparency = 0.55,
                         ThemeTag = {BackgroundColor3 = "TitleBarLine"}
                     }
@@ -1796,23 +1748,53 @@ local aa = {
                 s(
                     "CanvasGroup",
                     {
-                        Size = UDim2.new(1, -40, 1, -166),
-                        Position = UDim2.fromOffset(20, 101),
+                        Size = UDim2.new(1, -40, 1, -108),
+                        Position = UDim2.fromOffset(20, 98),
                         BackgroundTransparency = 1
                     }
                 )
 
-            -- Animated accent indicator for the selected bottom tab.
-            D.Parent = BottomBar
-            D.Size = UDim2.fromOffset(0, 3)
-            D.Position = UDim2.new(0, 12, 1, -4)
-            D.AnchorPoint = Vector2.new(0, 0)
+            -- Detached tab bar: sibling of the main window, visually separated below it.
+            local TabBar =
+                s(
+                    "Frame",
+                    {
+                        Size = UDim2.new(0, math.max(320, v.Size.X.Offset), 0, 48),
+                        Position = UDim2.fromOffset(v.Position.X.Offset, v.Position.Y.Offset + v.Size.Y.Offset + 10),
+                        BackgroundTransparency = 0.12,
+                        ClipsDescendants = true,
+                        Parent = t.Parent,
+                        ThemeTag = {BackgroundColor3 = "AcrylicMain"}
+                    },
+                    {
+                        s("UICorner", {CornerRadius = UDim.new(0, 14)}),
+                        s("UIStroke", {Thickness = 1, Transparency = 0.35, ThemeTag = {Color = "AcrylicBorder"}})
+                    }
+                )
+
+            local TabHolder =
+                s(
+                    "ScrollingFrame",
+                    {
+                        Size = UDim2.new(1, -14, 1, -10),
+                        Position = UDim2.fromOffset(7, 5),
+                        BackgroundTransparency = 1,
+                        ScrollBarImageTransparency = 1,
+                        ScrollBarThickness = 0,
+                        BorderSizePixel = 0,
+                        CanvasSize = UDim2.fromScale(0, 0),
+                        ScrollingDirection = Enum.ScrollingDirection.X,
+                        AutomaticCanvasSize = Enum.AutomaticSize.None,
+                        Parent = TabBar
+                    },
+                    {s("UIListLayout", {Padding = UDim.new(0, 6), FillDirection = Enum.FillDirection.Horizontal, VerticalAlignment = Enum.VerticalAlignment.Center})}
+                )
 
             v.TabHolder = TabHolder
             v.ContainerHolder = ContentHolder
             v.TabDisplay = ContentTitle
-            v.Sidebar = BottomBar
-            v.BrandCard = nil
+            v.TabBar = TabBar
+            v.Background = WindowBackground
 
             v.Root =
                 s(
@@ -1825,13 +1807,12 @@ local aa = {
                         ClipsDescendants = true
                     },
                     {
-                        v.AcrylicPaint.Frame,
+                        WindowBackground,
                         WindowCorner,
                         WindowStroke,
                         ContentTitle,
                         ContentLine,
                         ContentHolder,
-                        BottomBar,
                         E
                     }
                 )
@@ -1842,10 +1823,6 @@ local aa = {
                 Parent = v.Root,
                 Window = v
             }
-
-            if e(k).UseAcrylic then
-                v.AcrylicPaint.AddParent(v.Root)
-            end
 
             local G, H =
                 l.GroupMotor.new {X = v.Size.X.Offset, Y = v.Size.Y.Offset},
@@ -1859,22 +1836,25 @@ local aa = {
             G:onStep(
                 function(I)
                     v.Root.Size = UDim2.new(0, I.X, 0, I.Y)
+                    TabBar.Size = UDim2.new(0, I.X, 0, 48)
+                    TabBar.Position = UDim2.fromOffset(H:getValue().X, H:getValue().Y + I.Y + 10)
                 end
             )
             H:onStep(
                 function(I)
                     v.Root.Position = UDim2.new(0, I.X, 0, I.Y)
+                    TabBar.Position = UDim2.fromOffset(I.X, I.Y + G:getValue().Y + 10)
                 end
             )
 
             local I, J = 0, 0
             v.SelectorPosMotor:onStep(
                 function(K)
-                    D.Position = UDim2.new(0, K + 12, 1, -4)
+                    D.Position = UDim2.new(0, K + 8, 1, -3)
                     local L = tick()
                     local M = L - J
                     if I ~= nil and M > 0 then
-                        v.SelectorSizeMotor:setGoal(q((math.abs(K - I) / (M * 60)) + 42))
+                        v.SelectorSizeMotor:setGoal(q((math.abs(K - I) / (M * 60)) + 24))
                         I = K
                     end
                     J = L
@@ -1882,7 +1862,8 @@ local aa = {
             )
             v.SelectorSizeMotor:onStep(
                 function(K)
-                    D.Size = UDim2.fromOffset(math.max(24, K), 3)
+                    D.Size = UDim2.new(0, K, 0, 3)
+                    D.AnchorPoint = Vector2.new(0, 1)
                 end
             )
             v.ContainerBackMotor:onStep(
@@ -1896,7 +1877,7 @@ local aa = {
                 end
             )
 
-            TabHolder.Parent = BottomBar
+            D.Parent = TabBar
 
             local K, L
             v.Maximize = function(M, N, O)
@@ -1999,7 +1980,7 @@ local aa = {
             m.AddSignal(
                 TabHolder.UIListLayout:GetPropertyChangedSignal "AbsoluteContentSize",
                 function()
-                    TabHolder.CanvasSize = UDim2.new(0, TabHolder.UIListLayout.AbsoluteContentSize.X, 0, 0)
+                    TabHolder.CanvasSize = UDim2.new(0, TabHolder.UIListLayout.AbsoluteContentSize.X + 8, 0, 0)
                 end
             )
             m.AddSignal(
@@ -2027,8 +2008,8 @@ local aa = {
                 end
             end
             function v.Destroy(M)
-                if e(k).UseAcrylic then
-                    v.AcrylicPaint.Model:Destroy()
+                if v.TabBar then
+                    v.TabBar:Destroy()
                 end
                 v.Root:Destroy()
             end
