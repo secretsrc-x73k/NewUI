@@ -1,4 +1,4 @@
--- #Fix Color Reaper 15
+-- #New UI
 local a, b = {
     {
         1,
@@ -169,18 +169,15 @@ local aa = {
         z.__namecall = function(A, B, ...)
             return z[B](...)
         end
+
         for A, B in ipairs(q) do
             z["Add" .. B.__type] = function(C, D, E)
                 B.Container = C.Container
                 B.Type = C.Type
                 B.ScrollFrame = C.ScrollFrame
                 B.Library = x
-                local F = B:New(D, E)
-                if F and F.Frame and C.Container then
-                    C._ElementOrder = (C._ElementOrder or 0) + 1
-                    F.Frame.LayoutOrder = C._ElementOrder
-                end
-                return F
+
+                return B:New(D, E)
             end
         end
         x.Elements = z
@@ -1325,6 +1322,7 @@ local aa = {
                 local B, C = {Type = "Section"}, e(n.Section)(A, x.Container)
                 B.Container = C.Container
                 B.ScrollFrame = x.Container
+
                 setmetatable(B, v)
                 return B
             end
@@ -1339,45 +1337,72 @@ local aa = {
                 return
             end
 
-            -- Manual tab positioning keeps every row centered independently.
-            -- Maximum 7 tabs per row. This avoids the empty cells / left-shifted
-            -- second row that a fixed UIGridLayout would create.
+            -- Detached tabs: horizontal mode = max 5 per row.
+            -- Vertical mode = max 5 per column.
             local count = math.max(o.TabCount, 1)
-            local perRow = 5
             local tabWidth = 108
             local tabHeight = 38
             local gapX = 6
             local gapY = 6
             local paddingX = 8
             local paddingY = 7
-            local rows = math.ceil(count / perRow)
-            local maxColumns = math.min(count, perRow)
-            local barWidth = (maxColumns * tabWidth) + ((maxColumns - 1) * gapX) + (paddingX * 2)
-            local barHeight = (rows * tabHeight) + ((rows - 1) * gapY) + (paddingY * 2)
+            local orientation = r.TabBarOrientation or "Bottom"
 
-            r.TabBar.Size = UDim2.fromOffset(barWidth, barHeight)
-            r.TabHolder.Size = UDim2.fromScale(1, 1)
-            r.TabHolder.Position = UDim2.fromOffset(0, 0)
+            if orientation == "Left" or orientation == "Right" then
+                local perColumn = 5
+                local columns = math.ceil(count / perColumn)
+                local rows = math.min(count, perColumn)
+                local barWidth = (columns * tabWidth) + ((columns - 1) * gapX) + (paddingX * 2)
+                local barHeight = (rows * tabHeight) + ((rows - 1) * gapY) + (paddingY * 2)
 
-            for index, tab in ipairs(o.Tabs) do
-                local row = math.floor((index - 1) / perRow)
-                local firstIndex = row * perRow + 1
-                local lastIndex = math.min(firstIndex + perRow - 1, count)
-                local columns = lastIndex - firstIndex + 1
-                local rowWidth = (columns * tabWidth) + ((columns - 1) * gapX)
-                local column = index - firstIndex
+                r.TabBar.Size = UDim2.fromOffset(barWidth, barHeight)
+                r.TabHolder.Size = UDim2.fromScale(1, 1)
+                r.TabHolder.Position = UDim2.fromOffset(0, 0)
 
-                tab.Frame.Size = UDim2.fromOffset(tabWidth, tabHeight)
-                tab.Frame.Position = UDim2.fromOffset(
-                    paddingX + ((maxColumns * tabWidth + (maxColumns - 1) * gapX) - rowWidth) / 2 + column * (tabWidth + gapX),
-                    paddingY + row * (tabHeight + gapY)
-                )
+                for index, tab in ipairs(o.Tabs) do
+                    local column = math.floor((index - 1) / perColumn)
+                    local firstIndex = column * perColumn + 1
+                    local lastIndex = math.min(firstIndex + perColumn - 1, count)
+                    local rowsInColumn = lastIndex - firstIndex + 1
+                    local columnHeight = (rowsInColumn * tabHeight) + ((rowsInColumn - 1) * gapY)
+                    local row = index - firstIndex
+
+                    tab.Frame.Size = UDim2.fromOffset(tabWidth, tabHeight)
+                    tab.Frame.Position = UDim2.fromOffset(
+                        paddingX + column * (tabWidth + gapX),
+                        paddingY + ((rows * tabHeight + (rows - 1) * gapY) - columnHeight) / 2 + row * (tabHeight + gapY)
+                    )
+                end
+            else
+                local perRow = 5
+                local rows = math.ceil(count / perRow)
+                local maxColumns = math.min(count, perRow)
+                local barWidth = (maxColumns * tabWidth) + ((maxColumns - 1) * gapX) + (paddingX * 2)
+                local barHeight = (rows * tabHeight) + ((rows - 1) * gapY) + (paddingY * 2)
+
+                r.TabBar.Size = UDim2.fromOffset(barWidth, barHeight)
+                r.TabHolder.Size = UDim2.fromScale(1, 1)
+                r.TabHolder.Position = UDim2.fromOffset(0, 0)
+
+                for index, tab in ipairs(o.Tabs) do
+                    local row = math.floor((index - 1) / perRow)
+                    local firstIndex = row * perRow + 1
+                    local lastIndex = math.min(firstIndex + perRow - 1, count)
+                    local columns = lastIndex - firstIndex + 1
+                    local rowWidth = (columns * tabWidth) + ((columns - 1) * gapX)
+                    local column = index - firstIndex
+
+                    tab.Frame.Size = UDim2.fromOffset(tabWidth, tabHeight)
+                    tab.Frame.Position = UDim2.fromOffset(
+                        paddingX + ((maxColumns * tabWidth + (maxColumns - 1) * gapX) - rowWidth) / 2 + column * (tabWidth + gapX),
+                        paddingY + row * (tabHeight + gapY)
+                    )
+                end
             end
 
-            r.TabBar.Position = UDim2.fromOffset(
-                r.Root.Position.X.Offset + (r.Root.AbsoluteSize.X - barWidth) / 2,
-                r.Root.Position.Y.Offset + r.Root.AbsoluteSize.Y + 10
-            )
+            if r._UpdateTabBarPosition then
+                r:_UpdateTabBarPosition()
+            end
         end
 
         function o.SelectTab(p, q)
@@ -1846,7 +1871,7 @@ local aa = {
                 )
 
             -- Detached tab bar. Its size is calculated from the actual number of tabs.
-            -- Maximum 7 tabs per row; additional tabs wrap onto the next row.
+            -- Maximum 5 tabs per row; additional tabs wrap onto the next row.
             local TabBar =
                 s(
                     "Frame",
@@ -1920,15 +1945,112 @@ local aa = {
             v.ContainerPosMotor = l.SingleMotor.new(98)
 
             local function UpdateTabBarPosition()
-                if not v.TabBar then
+                if not v.TabBar or not j then
                     return
                 end
-                local width = v.TabBar.AbsoluteSize.X
-                v.TabBar.Position = UDim2.fromOffset(
-                    v.Root.Position.X.Offset + (v.Root.AbsoluteSize.X - width) / 2,
-                    v.Root.Position.Y.Offset + v.Root.AbsoluteSize.Y + 10
-                )
+
+                local viewport = j.ViewportSize
+                local rootPos = v.Root.AbsolutePosition
+                local rootSize = v.Root.AbsoluteSize
+                local margin = 10
+                local count = v.Tabs and #v.Tabs or 1
+
+                local tabWidth = 108
+                local tabHeight = 38
+                local gapX = 6
+                local gapY = 6
+                local paddingX = 8
+                local paddingY = 7
+
+                local horizontalRows = math.ceil(count / 5)
+                local horizontalColumns = math.min(count, 5)
+                local horizontalWidth =
+                    (horizontalColumns * tabWidth) + ((horizontalColumns - 1) * gapX) + (paddingX * 2)
+                local horizontalHeight =
+                    (horizontalRows * tabHeight) + ((horizontalRows - 1) * gapY) + (paddingY * 2)
+
+                local verticalColumns = math.ceil(count / 5)
+                local verticalRows = math.min(count, 5)
+                local verticalWidth =
+                    (verticalColumns * tabWidth) + ((verticalColumns - 1) * gapX) + (paddingX * 2)
+                local verticalHeight =
+                    (verticalRows * tabHeight) + ((verticalRows - 1) * gapY) + (paddingY * 2)
+
+                local availableTop = rootPos.Y - margin
+                local availableBottom = viewport.Y - (rootPos.Y + rootSize.Y) - margin
+                local availableLeft = rootPos.X - margin
+                local availableRight = viewport.X - (rootPos.X + rootSize.X) - margin
+
+                local candidates = {
+                    {Name = "Top", Available = availableTop, Needed = horizontalHeight, Primary = 1},
+                    {Name = "Bottom", Available = availableBottom, Needed = horizontalHeight, Primary = 2},
+                    {Name = "Left", Available = availableLeft, Needed = verticalWidth, Primary = 3},
+                    {Name = "Right", Available = availableRight, Needed = verticalWidth, Primary = 4}
+                }
+
+                local fitting = {}
+                for _, candidate in ipairs(candidates) do
+                    if candidate.Available >= candidate.Needed then
+                        table.insert(fitting, candidate)
+                    end
+                end
+
+                local chosen
+                if #fitting > 0 then
+                    chosen = fitting[1]
+                    for _, candidate in ipairs(fitting) do
+                        if candidate.Available > chosen.Available then
+                            chosen = candidate
+                        elseif candidate.Available == chosen.Available then
+                            -- Left wins an exact left/right tie.
+                            if candidate.Name == "Left" and chosen.Name == "Right" then
+                                chosen = candidate
+                            end
+                        end
+                    end
+                else
+                    chosen = candidates[1]
+                    for _, candidate in ipairs(candidates) do
+                        if candidate.Available > chosen.Available then
+                            chosen = candidate
+                        elseif candidate.Available == chosen.Available then
+                            if candidate.Name == "Left" and chosen.Name == "Right" then
+                                chosen = candidate
+                            end
+                        end
+                    end
+                end
+
+                v.TabBarOrientation = chosen.Name
+
+                local barWidth = (chosen.Name == "Left" or chosen.Name == "Right") and verticalWidth or horizontalWidth
+                local barHeight = (chosen.Name == "Left" or chosen.Name == "Right") and verticalHeight or horizontalHeight
+                v.TabBar.Size = UDim2.fromOffset(barWidth, barHeight)
+
+                if chosen.Name == "Top" then
+                    v.TabBar.Position = UDim2.fromOffset(
+                        rootPos.X + (rootSize.X - barWidth) / 2,
+                        rootPos.Y - barHeight - margin
+                    )
+                elseif chosen.Name == "Bottom" then
+                    v.TabBar.Position = UDim2.fromOffset(
+                        rootPos.X + (rootSize.X - barWidth) / 2,
+                        rootPos.Y + rootSize.Y + margin
+                    )
+                elseif chosen.Name == "Left" then
+                    v.TabBar.Position = UDim2.fromOffset(
+                        rootPos.X - barWidth - margin,
+                        rootPos.Y + (rootSize.Y - barHeight) / 2
+                    )
+                else
+                    v.TabBar.Position = UDim2.fromOffset(
+                        rootPos.X + rootSize.X + margin,
+                        rootPos.Y + (rootSize.Y - barHeight) / 2
+                    )
+                end
             end
+
+            v._UpdateTabBarPosition = UpdateTabBarPosition
 
             G:onStep(
                 function(I)
@@ -2150,6 +2272,7 @@ local aa = {
             function v.AddTab(O, P)
                 local Q = N:New(P.Title, P.Icon, TabHolder)
                 N:UpdateLayout()
+                UpdateTabBarPosition()
                 return Q
             end
             function v.SelectTab(O, P)
